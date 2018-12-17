@@ -52,36 +52,34 @@ type TestTools struct {
 // BeginTest takes a *testing.T and returns replacement
 // TestTools. Don't forget to defer t.FinishTest() to ensure
 // cleanup
-func BeginTest(t T) *TestTools {
+func BeginTest(t T, generateResults bool) *TestTools {
 	_, file, _, _ := runtime.Caller(2)
-	return &TestTools{
+	tt := &TestTools{
 		err:             make(chan error, 20),
 		T:               t,
 		TestdataDir:     filepath.Join(filepath.Dir(file), "testdata", t.Name()),
-		generateResults: GENERATE_RESULTS,
+		generateResults: GENERATE_RESULTS || generateResults,
 	}
-}
-
-// GenerateResults() enables test result generation for this
-// test instance
-func (tt *TestTools) GenerateResults() {
-	tt.generateResults = true
+	tt.loadResults()
+	return tt
 }
 
 // LoadResults loads key-value results from the corresponding
 // test folder /results.json file
-func (tt *TestTools) LoadResults() {
+func (tt *TestTools) loadResults() {
 	if tt.generateResults {
 		tt.Results = make(results)
 	} else {
 		path := filepath.Join(tt.TestdataDir, "results.json")
 		resultBytes, err := ioutil.ReadFile(path)
 		if err != nil {
-			tt.Fatalf("Cannot open results file %s: %s", path, err)
+			tt.Results = make(results)
+			return
 		}
 		err = json.Unmarshal(resultBytes, &tt.Results)
 		if err != nil {
-			tt.Fatalf("Cannot parse results file %s: %s", path, err)
+			tt.Results = make(results)
+			return
 		}
 	}
 }

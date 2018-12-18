@@ -84,6 +84,11 @@ func TestBasic(t *testing.T) {
 
 Advanced usage allows for automatically generating test results to files in the `testadata` directory. When `BeginTest()` is called with its second parameter set to `true`, all files will be automatically regenerated.
 
+`BeginTest()` replaces the regular `testing.T` object with a compatible one that adds all the functionality of &micro;t.
+
+Always defer a call to `t.FinishTest()` to allow &micro;t to process all errors from concurrent goroutines, wait for them
+to finish and also clean up.
+
 ```go
 package mypackage_test
 
@@ -96,7 +101,7 @@ import (
 // We can further reduce testing code and improve clarity by using advanced mode:
 func TestAdvanced(tx *testing.T) {
 	t := ut.BeginTest(tx, false) // set to true to regenerate test results
-	defer t.FinishTest()
+	defer t.FinishTest() // always defer t.FinishTest() to cleanup, process errors and store results
 
 	// example struct:
 	op := Operation{
@@ -132,7 +137,7 @@ taking care of incrementing the wait counters
 Here is an example:
 
 ```go
-func TestConcurrent(tx *testing.T) {
+func TestConcurrent(tx *testing.T) 
 	t := ut.BeginTest(tx, false)
 	defer t.FinishTest()
 
@@ -174,7 +179,7 @@ finished quick part...
 second lengthy process started...
 lengthy process started...
 lengthy process finished...
-path/to/my/file.go:34: FATAL: crashed!
+/file.go:51: FATAL: crashed!
 Error: Fatal error
 1 errors
 --- FAIL: TestConcurrent (0.30s)
@@ -282,3 +287,12 @@ func TestCustom(tx *testing.T) {
 	t.Assert(i == len(longString), "Expected to have written the entire string")
 }
 ```
+
+# Licensing
+
+&micro;t is licensed under the GNU LGPLv3.
+
+# Authors
+
+&micro;t is used by [Ethergit](https://www.ethergit.io) and other internal projects. It is written and maintained by @jpeletier / [Epic Labs](https://www.epiclabs.io). 
+Please feel free to contact me for any questions or comments!

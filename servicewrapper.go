@@ -17,15 +17,15 @@
 package ut
 
 type serviceWrapper struct {
-	close func()
+	close func() error
 }
 
-func NewService(cleanup func()) *serviceWrapper {
+func NewService(cleanup func() error) *serviceWrapper {
 	return &serviceWrapper{
 		close: cleanup,
 	}
 }
 
-func (sw *serviceWrapper) Close() {
-	sw.close()
+func (sw *serviceWrapper) Close() error {
+	return sw.close()
 }

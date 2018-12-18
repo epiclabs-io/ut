@@ -122,6 +122,65 @@ func TestAdvanced(tx *testing.T) {
 }
 ```
 
+## Testing within goroutines
+
+&micro;t supports testing within child goroutines. This is not supported by the default go testing framework out of the box.
+
+To create a child goroutine, use `t.Go(func(){})` for a managed experience or launch a goroutine the regular way, 
+taking care of incrementing the wait counters
+
+Here is an example:
+
+```go
+func TestConcurrent(tx *testing.T) {
+	t := ut.BeginTest(tx, false)
+	defer t.FinishTest()
+
+	t.Go(func() {
+		fmt.Println("lengthy process started...")
+		time.Sleep(200 * time.Millisecond)
+		// test some work that has to run in parallel
+		t.Assert(1 == 1, "one should be equal to one!")
+		fmt.Println("lengthy process finished...")
+
+	})
+
+	// you can also launch goroutines yourself, but you'll need to increment
+	// the counter with t.RoutineStart() and call
+	// t.RoutineEnd() when your routine ends, so the main routine can wait for it to finish
+
+	t.RoutineStart()
+	go func() {
+		defer t.RoutineEnd()
+		fmt.Println("second lengthy process started...")
+		time.Sleep(300 * time.Millisecond)
+		// test some work that has to run in parallel
+		t.Assert(7 == 7, "seven should be equal to one!")
+		t.Fatal("crashed!") // you can call any test function inside a goroutine
+		fmt.Println("second lengthy process finished...")
+	}()
+
+	fmt.Println("Some quick tests here...")
+	// test some other things
+	t.Assert(5 > 3, "5 should be greater than 3.")
+	fmt.Println("finished quick part...")
+
+}
+```
+Output (note the 2nd goroutine has a `Fatal` call.): 
+```
+Some quick tests here...
+finished quick part...
+second lengthy process started...
+lengthy process started...
+lengthy process finished...
+path/to/my/file.go:34: FATAL: crashed!
+Error: Fatal error
+1 errors
+--- FAIL: TestConcurrent (0.30s)
+FAIL
+```
+
 ## Test Services
 
 &micro;t includes the concept ot "test service". A Test service is a wrapper for some third-party functionality you need available during the test ,such as a throwaway database or a temporary folder that must be cleaned after the test ends. &micro;t comes with `FileServices` by default, which provides temporary files and folders that are automatically deleted once the test is finished.

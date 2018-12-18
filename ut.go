@@ -289,11 +289,21 @@ func (tt *TestTools) AddService(s Service) {
 
 // Go will launch a test goroutine
 func (tt *TestTools) Go(subroutine func()) {
-	tt.W.Add(1)
+	tt.RoutineStart()
 	go func() {
-		defer tt.W.Done()
+		defer tt.RoutineEnd()
 		subroutine()
 	}()
+}
+
+// RoutineStart adds one to the goroutine waiting counter
+func (tt *TestTools) RoutineStart() {
+	tt.W.Add(1)
+}
+
+// RoutineEnd notifies a child goroutine is finished
+func (tt *TestTools) RoutineEnd() {
+	tt.W.Done()
 }
 
 //StartSubTest marks the beginning of a new subtest

@@ -15,7 +15,7 @@ import (
 // Service is an interface to define a test service that needs
 // cleanup on finish
 type Service interface {
-	Close()
+	Close() error
 }
 
 // SubTest interface allows you to define a custom subtest
@@ -49,10 +49,10 @@ type TestTools struct {
 	services        []Service
 }
 
-// BeginTest takes a *testing.T and returns replacement
+// ToolsBeginTest takes a *testing.T and returns replacement
 // TestTools. Don't forget to defer t.FinishTest() to ensure
 // cleanup
-func BeginTest(t T, generateResults bool) *TestTools {
+func ToolsBeginTest(t T, generateResults bool) *TestTools {
 	_, file, _, _ := runtime.Caller(2)
 	tt := &TestTools{
 		err:             make(chan error, 20),
@@ -99,21 +99,21 @@ func (tt *TestTools) Error(err error) {
 
 // Assert verifies if the condition is true. If not, it fails the test
 func (tt *TestTools) Assert(condition bool, msg string, v ...interface{}) {
-	if assert(0, condition, msg, v...) {
+	if Internal.Assert(0, condition, msg, v...) {
 		tt.Error(fmt.Errorf("Assertion failed: %s", msg))
 	}
 }
 
 // Ok checks if there is no error. Otherwise it fails the test
 func (tt *TestTools) Ok(err error) {
-	if ok(0, err) {
+	if Internal.Ok(0, err) {
 		tt.Error(err)
 	}
 }
 
 // Equals tests if both objects are "deeply equal", otherwise it fails the test
 func (tt *TestTools) Equals(expected, actual interface{}) {
-	if equals(0, expected, actual) {
+	if Internal.Equals(0, expected, actual) {
 		tt.Error(errors.New("Expressions don't match"))
 	}
 }
@@ -141,7 +141,7 @@ func (tt *TestTools) equalsBytes(callDepth int, name string, actual interface{},
 	}
 
 	expected := expectedValuePtr.Elem().Interface()
-	if equals(callDepth+1, expected, actual) {
+	if Internal.Equals(callDepth+1, expected, actual) {
 		tt.Error(fmt.Errorf("Expressions don't match. Check file '%s' in testdata/%s or key '%s' in testdata/%s/results.json", name, tt.T.Name(), name, tt.T.Name()))
 	}
 
@@ -190,7 +190,7 @@ func (tt *TestTools) EqualsFile(file string, actual interface{}) {
 //JSONEquals checks if the passed values are JSON-equal, comparing values
 // taking into account keys can be in different order, etc.
 func (tt *TestTools) JSONEquals(expected, actual []byte) {
-	if jsonEquals(0, expected, actual) {
+	if Internal.JSONEquals(0, expected, actual) {
 		tt.Error(errors.New("JSONs don't match"))
 	}
 }
@@ -199,7 +199,7 @@ func (tt *TestTools) jsonEqualsFile(callDepth int, file string, actual []byte) {
 	path := filepath.Join(tt.TestdataDir, file)
 	if tt.generateResults {
 		CreateDirectory(tt.TestdataDir)
-		err := ioutil.WriteFile(path, jsonPretty(actual), 0660)
+		err := ioutil.WriteFile(path, Internal.JSONPretty(actual), 0660)
 		if err != nil {
 			tt.Fatalf("Cannot write test result file %s : %s", path, err)
 		}
@@ -212,7 +212,7 @@ func (tt *TestTools) jsonEqualsFile(callDepth int, file string, actual []byte) {
 		if err != nil {
 			tt.Fatalf("Cannot read test result file %s : %s", path, err)
 		}
-		if jsonEquals(callDepth+1, expected, actual) {
+		if Internal.JSONEquals(callDepth+1, expected, actual) {
 			tt.Error(fmt.Errorf("JSONs don't match. Test result file: %s", path))
 		}
 	}
@@ -248,34 +248,36 @@ func (tt *TestTools) TestJSONMarshaller(filename string, sample interface{}) {
 	recoveredPtr := reflect.New(sampleType)
 	err = json.Unmarshal(actual, recoveredPtr.Interface())
 	tt.Ok(err)
-	if equals(0, sample, recoveredPtr.Elem().Interface()) {
+	if Internal.Equals(0, sample, recoveredPtr.Elem().Interface()) {
 		tt.Error(errors.New("Expressions don't match"))
 	}
 }
 
 // Fatal will fail the test immediately with an error message
 func (tt *TestTools) Fatal(args ...interface{}) {
-	fatal(0, args...)
+	Internal.Fatal(0, args...)
 	tt.Error(errors.New("Fatal error"))
 }
 
 // Fatalf will fail the test immediately with a formatted error message
 func (tt *TestTools) Fatalf(formatString string, args ...interface{}) {
-	fatalf(0, formatString, args...)
+	Internal.Fatalf(0, formatString, args...)
 	tt.Error(errors.New("Fatal error"))
 }
 
 // MustFail checks if err == nil. If so, it fails the test
 func (tt *TestTools) MustFail(err error, msg string, v ...interface{}) {
-	if assert(0, err != nil, msg, v...) {
+	if Internal.Assert(0, err != nil, msg, v...) {
 		tt.Error(fmt.Errorf("Should have failed: %s", msg))
 	}
 }
 
 // MustFailWith checks if err equals an expected error. If not, it will fail the test.
 func (tt *TestTools) MustFailWith(err error, expectedError error) {
-	msg := fmt.Sprintf("Expected error to be '%s'. Got '%s'", errorString(expectedError), errorString(err))
-	if assert(0, err == expectedError, msg) {
+	msg := fmt.Sprintf("Expected error to be '%s'. Got '%s'",
+		Internal.ErrorString(expectedError),
+		Internal.ErrorString(err))
+	if Internal.Assert(0, err == expectedError, msg) {
 		tt.Error(fmt.Errorf("Should have failed: %s", msg))
 	}
 }
@@ -311,7 +313,10 @@ func (tt *TestTools) FinishTest() {
 	close(tt.err)
 
 	for i := len(tt.services) - 1; i >= 0; i-- {
-		tt.services[i].Close()
+		err := tt.services[i].Close()
+		if err != nil {
+			fmt.Printf("Error closing service: %s\n", err)
+		}
 	}
 	tt.services = nil
 

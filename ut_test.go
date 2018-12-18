@@ -29,7 +29,7 @@ func MetaTester(name string, pseudoTest func(tt *ut.TestTools)) (ft *fakeT, earl
 		}()
 
 		func() {
-			tt := ut.BeginTest(ft)
+			tt := ut.ToolsBeginTest(ft, false)
 			defer tt.FinishTest()
 			pseudoTest(tt)
 		}()

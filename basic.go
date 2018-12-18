@@ -1,6 +1,7 @@
 package ut
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -23,42 +24,56 @@ type T interface {
 
 // Assert fails the test if the condition is false.
 func Assert(tb T, condition bool, msg string, v ...interface{}) {
-	if assert(0, condition, msg, v...) {
+	if Internal.Assert(0, condition, msg, v...) {
 		tb.FailNow()
 	}
 }
 
 // MustFail checks if err == nil. If so, it fails the test
 func MustFail(tb T, err error, msg string, v ...interface{}) {
-	if assert(0, err != nil, msg, v...) {
+	if Internal.Assert(0, err != nil, msg, v...) {
 		tb.FailNow()
 	}
 }
 
 // MustFailWith checks if err equals an expected error. If not, it will fail the test.
 func MustFailWith(tb T, err error, expectedError error) {
-	if assert(0, err == expectedError, fmt.Sprintf("Expected error to be '%s'. Got '%s'", errorString(expectedError), errorString(err))) {
+	if Internal.Assert(0, err == expectedError, fmt.Sprintf("Expected error to be '%s'. Got '%s'",
+		Internal.ErrorString(expectedError), Internal.ErrorString(err))) {
 		tb.FailNow()
 	}
 }
 
 // Ok fails the test if an err is not nil.
 func Ok(tb T, err error) {
-	if ok(0, err) {
+	if Internal.Ok(0, err) {
 		tb.FailNow()
 	}
 }
 
 // Equals fails the test if exp is not equal to act.
 func Equals(tb T, expected, actual interface{}) {
-	if equals(0, expected, actual) {
+	if Internal.Equals(0, expected, actual) {
 		tb.FailNow()
 	}
 }
 
 // JSONEquals fails if provided JSONs are not equivalent
 func JSONEquals(tb T, expected, actual []byte) {
-	if jsonEquals(0, expected, actual) {
+	if Internal.JSONEquals(0, expected, actual) {
+		tb.FailNow()
+	}
+}
+
+// JSONEqualsString performs a JSON comparison of the given object
+// with the JSON contained in the referenced string
+func JSONEqualsString(tb T, expected string, actual interface{}) {
+	actualBytes, err := json.Marshal(actual)
+	if err != nil {
+		//tt.Fatalf("Cannot marshal 'actual' to JSON: %s", err)
+		tb.FailNow()
+	}
+	if Internal.JSONEquals(0, []byte(expected), actualBytes) {
 		tb.FailNow()
 	}
 }

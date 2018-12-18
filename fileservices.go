@@ -18,8 +18,9 @@ type TempDir struct {
 	tempFileDir string
 }
 
-func (td *TempDir) Close() {
+func (td *TempDir) Close() error {
 	os.RemoveAll(td.tempFileDir)
+	return nil
 }
 
 func NewFileServices(t *TestTools) *FileServices {

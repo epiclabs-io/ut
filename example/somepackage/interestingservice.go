@@ -29,7 +29,8 @@ func NewInterestingService(ID int, interval time.Duration, path string) *Interes
 	return it
 }
 
-func (it *InterestingService) Close() {
+func (it *InterestingService) Close() error {
 	fmt.Printf("Terminating Interesting Service %d...\n", it.ID)
 	it.end = true
+	return nil
 }

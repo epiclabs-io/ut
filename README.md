@@ -1,6 +1,6 @@
-# &micro;t - microTest, a simple go testing framework
+# &micro;t - microTest, a simple go testing library
 
-&micro;t is a minimalist golang testing framework designed so you can easily adapt it to your project, as opposed to forcing you to rewrite all your tests to conform to a particular structure. It has the following features:
+&micro;t is a minimalist golang testing library designed so you can easily adapt it to your project, as opposed to forcing you to rewrite all your tests to conform to a particular structure. It has the following features:
 
 * Toolbox of checking functions, such as Assert, Ok, MustFail, Equals...
 * JSON marshalling out-of-the-box testing
@@ -15,7 +15,7 @@
 To install &micro;t, simply grab it using `go get`:
 
 ```sh
-$ go get github.com/epiclabs.io/ut
+$ go get github.com/epiclabs-io/ut
 ```
 
 ## Basic usage:

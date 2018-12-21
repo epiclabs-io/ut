@@ -41,7 +41,7 @@ func (in *internal) Suspend() {
 	<-c
 }
 
-func (in *internal) Assert(callDepth int, condition bool, msg string, v ...interface{}) bool {
+func (in *internal) NotAssert(callDepth int, condition bool, msg string, v ...interface{}) bool {
 	if !condition {
 		_, file, line, _ := runtime.Caller(2 + callDepth)
 		fmt.Printf("%s:%d: Assertion failed: "+msg+"\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
@@ -57,7 +57,7 @@ func (in *internal) ErrorString(err error) string {
 	return err.Error()
 }
 
-func (in *internal) Ok(callDepth int, err error) bool {
+func (in *internal) NotOk(callDepth int, err error) bool {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(2 + callDepth)
 		fmt.Printf("%s:%d: unexpected error: %s\n\n", filepath.Base(file), line, err.Error())
@@ -66,7 +66,7 @@ func (in *internal) Ok(callDepth int, err error) bool {
 	return false
 }
 
-func (in *internal) Equals(callDepth int, expected, actual interface{}) bool {
+func (in *internal) NotEquals(callDepth int, expected, actual interface{}) bool {
 	if !reflect.DeepEqual(expected, actual) {
 		_, file, line, _ := runtime.Caller(2 + callDepth)
 		fmt.Printf("%s:%d:\n\n\texpected: %#v\n\n\tgot: %#v\n\n", filepath.Base(file), line, expected, actual)
@@ -81,7 +81,7 @@ func (in *internal) JSONPretty(jsonBytes []byte) []byte {
 	return buf.Bytes()
 }
 
-func (in *internal) JSONEquals(callDepth int, expected, actual []byte) bool {
+func (in *internal) NotJSONEquals(callDepth int, expected, actual []byte) bool {
 	//credit for the trick: turtlemonvh https://gist.github.com/turtlemonvh/e4f7404e28387fadb8ad275a99596f67
 	var o1 interface{}
 	var o2 interface{}

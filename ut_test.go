@@ -114,6 +114,46 @@ var batch = []metaTest{
 			t.Equals("hello", "world")
 		},
 	},
+	{
+		name: "MustFail-ok",
+		handler: func(t *ut.TestTools) {
+			t.MustFail(errors.New("an error"), "should have failed")
+		},
+	},
+	{
+		name:   "MustFail-fail",
+		failed: true,
+		early:  true,
+		handler: func(t *ut.TestTools) {
+			t.MustFail(nil, "should have failed")
+		},
+	},
+	{
+		name: "MustFailWith-ok",
+		handler: func(t *ut.TestTools) {
+			ErrSomeError := errors.New("an error")
+			t.MustFailWith(ErrSomeError, ErrSomeError)
+		},
+	},
+	{
+		name:   "MustFail-fail",
+		failed: true,
+		early:  true,
+		handler: func(t *ut.TestTools) {
+			ErrSomeError := errors.New("an error")
+			t.MustFailWith(nil, ErrSomeError)
+		},
+	},
+	{
+		name:   "MustFail-fail",
+		failed: true,
+		early:  true,
+		handler: func(t *ut.TestTools) {
+			ErrSomeError := errors.New("an error")
+			ErrOtherError := errors.New("some other error")
+			t.MustFailWith(ErrOtherError, ErrSomeError)
+		},
+	},
 }
 
 func TestTestTools(t *testing.T) {

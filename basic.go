@@ -40,21 +40,21 @@ type T interface {
 
 // Assert fails the test if the condition is false.
 func Assert(tb T, condition bool, msg string, v ...interface{}) {
-	if Internal.Assert(0, condition, msg, v...) {
+	if Internal.NotAssert(0, condition, msg, v...) {
 		tb.FailNow()
 	}
 }
 
 // MustFail checks if err == nil. If so, it fails the test
 func MustFail(tb T, err error, msg string, v ...interface{}) {
-	if Internal.Assert(0, err != nil, msg, v...) {
+	if Internal.NotAssert(0, err != nil, msg, v...) {
 		tb.FailNow()
 	}
 }
 
 // MustFailWith checks if err equals an expected error. If not, it will fail the test.
 func MustFailWith(tb T, err error, expectedError error) {
-	if Internal.Assert(0, err == expectedError, fmt.Sprintf("Expected error to be '%s'. Got '%s'",
+	if Internal.NotAssert(0, err == expectedError, fmt.Sprintf("Expected error to be '%s'. Got '%s'",
 		Internal.ErrorString(expectedError), Internal.ErrorString(err))) {
 		tb.FailNow()
 	}
@@ -62,21 +62,21 @@ func MustFailWith(tb T, err error, expectedError error) {
 
 // Ok fails the test if an err is not nil.
 func Ok(tb T, err error) {
-	if Internal.Ok(0, err) {
+	if Internal.NotOk(0, err) {
 		tb.FailNow()
 	}
 }
 
 // Equals fails the test if exp is not equal to act.
 func Equals(tb T, expected, actual interface{}) {
-	if Internal.Equals(0, expected, actual) {
+	if Internal.NotEquals(0, expected, actual) {
 		tb.FailNow()
 	}
 }
 
 // JSONEquals fails if provided JSONs are not equivalent
 func JSONEquals(tb T, expected, actual []byte) {
-	if Internal.JSONEquals(0, expected, actual) {
+	if Internal.NotJSONEquals(0, expected, actual) {
 		tb.FailNow()
 	}
 }
@@ -89,7 +89,7 @@ func JSONEqualsString(tb T, expected string, actual interface{}) {
 		//tt.Fatalf("Cannot marshal 'actual' to JSON: %s", err)
 		tb.FailNow()
 	}
-	if Internal.JSONEquals(0, []byte(expected), actualBytes) {
+	if Internal.NotJSONEquals(0, []byte(expected), actualBytes) {
 		tb.FailNow()
 	}
 }

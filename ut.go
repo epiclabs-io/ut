@@ -65,7 +65,7 @@ type TestTools struct {
 	services        []Service
 }
 
-// ToolsBeginTest takes a *testing.T and returns replacement
+// ToolsBeginTest takes a *testing.T and returns a replacement
 // TestTools. Don't forget to defer t.FinishTest() to ensure
 // cleanup
 func ToolsBeginTest(t T, generateResults bool) *TestTools {
@@ -80,7 +80,7 @@ func ToolsBeginTest(t T, generateResults bool) *TestTools {
 	return tt
 }
 
-// LoadResults loads key-value results from the corresponding
+// loadResults loads key-value results from the corresponding
 // test folder /results.json file
 func (tt *TestTools) loadResults() {
 	if tt.generateResults {
@@ -115,21 +115,21 @@ func (tt *TestTools) Error(err error) {
 
 // Assert verifies if the condition is true. If not, it fails the test
 func (tt *TestTools) Assert(condition bool, msg string, v ...interface{}) {
-	if Internal.Assert(0, condition, msg, v...) {
+	if Internal.NotAssert(0, condition, msg, v...) {
 		tt.Error(fmt.Errorf("Assertion failed: %s", msg))
 	}
 }
 
 // Ok checks if there is no error. Otherwise it fails the test
 func (tt *TestTools) Ok(err error) {
-	if Internal.Ok(0, err) {
+	if Internal.NotOk(0, err) {
 		tt.Error(err)
 	}
 }
 
 // Equals tests if both objects are "deeply equal", otherwise it fails the test
 func (tt *TestTools) Equals(expected, actual interface{}) {
-	if Internal.Equals(0, expected, actual) {
+	if Internal.NotEquals(0, expected, actual) {
 		tt.Error(errors.New("Expressions don't match"))
 	}
 }
@@ -157,7 +157,7 @@ func (tt *TestTools) equalsBytes(callDepth int, name string, actual interface{},
 	}
 
 	expected := expectedValuePtr.Elem().Interface()
-	if Internal.Equals(callDepth+1, expected, actual) {
+	if Internal.NotEquals(callDepth+1, expected, actual) {
 		tt.Error(fmt.Errorf("Expressions don't match. Check file '%s' in testdata/%s or key '%s' in testdata/%s/results.json", name, tt.T.Name(), name, tt.T.Name()))
 	}
 
@@ -206,7 +206,7 @@ func (tt *TestTools) EqualsFile(file string, actual interface{}) {
 //JSONEquals checks if the passed values are JSON-equal, comparing values
 // taking into account keys can be in different order, etc.
 func (tt *TestTools) JSONEquals(expected, actual []byte) {
-	if Internal.JSONEquals(0, expected, actual) {
+	if Internal.NotJSONEquals(0, expected, actual) {
 		tt.Error(errors.New("JSONs don't match"))
 	}
 }
@@ -228,7 +228,7 @@ func (tt *TestTools) jsonEqualsFile(callDepth int, file string, actual []byte) {
 		if err != nil {
 			tt.Fatalf("Cannot read test result file %s : %s", path, err)
 		}
-		if Internal.JSONEquals(callDepth+1, expected, actual) {
+		if Internal.NotJSONEquals(callDepth+1, expected, actual) {
 			tt.Error(fmt.Errorf("JSONs don't match. Test result file: %s", path))
 		}
 	}
@@ -254,7 +254,9 @@ func (tt *TestTools) JSONEqualsFile(file string, actual interface{}) {
 // matching the marshalled data to the referenced file.
 func (tt *TestTools) TestJSONMarshaller(filename string, sample interface{}) {
 	actual, err := json.Marshal(sample)
-	tt.Ok(err)
+	if Internal.NotOk(0, err) {
+		tt.Error(err)
+	}
 	sampleType := reflect.TypeOf(sample)
 	if sampleType.Kind() == reflect.Ptr {
 		sampleType = sampleType.Elem()
@@ -263,8 +265,10 @@ func (tt *TestTools) TestJSONMarshaller(filename string, sample interface{}) {
 	tt.jsonEqualsFile(0, filename, actual)
 	recoveredPtr := reflect.New(sampleType)
 	err = json.Unmarshal(actual, recoveredPtr.Interface())
-	tt.Ok(err)
-	if Internal.Equals(0, sample, recoveredPtr.Elem().Interface()) {
+	if Internal.NotOk(0, err) {
+		tt.Error(err)
+	}
+	if Internal.NotEquals(0, sample, recoveredPtr.Elem().Interface()) {
 		tt.Error(errors.New("Expressions don't match"))
 	}
 }
@@ -283,7 +287,7 @@ func (tt *TestTools) Fatalf(formatString string, args ...interface{}) {
 
 // MustFail checks if err == nil. If so, it fails the test
 func (tt *TestTools) MustFail(err error, msg string, v ...interface{}) {
-	if Internal.Assert(0, err != nil, msg, v...) {
+	if Internal.NotAssert(0, err != nil, msg, v...) {
 		tt.Error(fmt.Errorf("Should have failed: %s", msg))
 	}
 }
@@ -293,7 +297,7 @@ func (tt *TestTools) MustFailWith(err error, expectedError error) {
 	msg := fmt.Sprintf("Expected error to be '%s'. Got '%s'",
 		Internal.ErrorString(expectedError),
 		Internal.ErrorString(err))
-	if Internal.Assert(0, err == expectedError, msg) {
+	if Internal.NotAssert(0, err == expectedError, msg) {
 		tt.Error(fmt.Errorf("Should have failed: %s", msg))
 	}
 }
@@ -366,7 +370,7 @@ func (tt *TestTools) FinishTest() {
 		tt.T.FailNow()
 	}
 	if tt.generateResults {
-		if tt.Results != nil {
+		if tt.Results != nil && len(tt.Results) > 0 {
 			resultsBytes, err := json.MarshalIndent(tt.Results, "", "\t")
 			if err != nil {
 				tt.T.Fatal("Cannot marshal results to JSON")

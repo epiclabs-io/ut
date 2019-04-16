@@ -22,6 +22,7 @@ import (
 
 type DefaultServices struct {
 	*FileServices
+	RandomServices
 }
 
 type DefaultTestTools struct {

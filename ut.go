@@ -302,6 +302,42 @@ func (tt *TestTools) MustFailWith(err error, expectedError error) {
 	}
 }
 
+func testPanic(f func()) (bool, interface{}) {
+	didPanic := false
+	var message interface{}
+	func() {
+		defer func() {
+			if message = recover(); message != nil {
+				didPanic = true
+			}
+		}()
+		f()
+
+	}()
+	return didPanic, message
+}
+
+// MustPanic runs a function and checks that it panics
+func (tt *TestTools) MustPanic(f func()) {
+	didPanic, _ := testPanic(f)
+	msg := "Expected function to panic"
+	if Internal.NotAssert(0, didPanic, msg) {
+		tt.Error(errors.New("should have panicked"))
+	}
+}
+
+// MustPanicWith runs a function and checks that it panics throwing a specific value
+func (tt *TestTools) MustPanicWith(expectedMessage interface{}, f func()) {
+	didPanic, recoveredMessage := testPanic(f)
+	msg := "Expected function to panic"
+	if Internal.NotAssert(0, didPanic, msg) {
+		tt.Error(errors.New("should have panicked"))
+	}
+	if Internal.NotEquals(0, expectedMessage, recoveredMessage) {
+		tt.Error(fmt.Errorf("Should have panicked with message: %v", expectedMessage))
+	}
+}
+
 // AddService adds a service that will be cleaned up when the test ends for any reason.
 func (tt *TestTools) AddService(s Service) {
 	tt.services = append(tt.services, s)

@@ -34,7 +34,7 @@ type metaTest struct {
 
 func MetaTester(name string, pseudoTest func(tt *ut.TestTools)) (ft *fakeT, early bool, panicValue interface{}) {
 	ft = new(fakeT)
-	ft.name = "TestTools"
+	ft.name = name
 	var wg sync.WaitGroup
 
 	early = true
@@ -152,6 +152,14 @@ var batch = []metaTest{
 			ErrSomeError := errors.New("an error")
 			ErrOtherError := errors.New("some other error")
 			t.MustFailWith(ErrOtherError, ErrSomeError)
+		},
+	},
+	{
+		name:   "EqualsTextFile",
+		failed: false,
+		early:  false,
+		handler: func(t *ut.TestTools) {
+			t.EqualsTextFile("test.txt", `some text2`)
 		},
 	},
 }

@@ -25,7 +25,10 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
+
+	"github.com/epiclabs-io/diff3"
 )
 
 // Service is an interface to define a test service that needs
@@ -134,7 +137,7 @@ func (tt *TestTools) Equals(expected, actual interface{}) {
 	}
 }
 
-func (tt *TestTools) equalsBytes(callDepth int, name string, actual interface{}, read func() []byte, write func(data []byte)) {
+func (tt *TestTools) equalsJSONBytes(callDepth int, name string, actual interface{}, read func() []byte, write func(data []byte)) {
 	if tt.generateResults {
 		actualBytes, err := json.MarshalIndent(actual, "", "\t")
 		if err != nil {
@@ -164,13 +167,34 @@ func (tt *TestTools) equalsBytes(callDepth int, name string, actual interface{},
 	return
 }
 
+func (tt *TestTools) equalsString(callDepth int, name string, actual string, read func() string, write func(data string)) {
+	if tt.generateResults {
+		write(actual)
+		return
+	}
+
+	expected := read()
+	if Internal.NotEquals(callDepth+1, expected, actual) {
+		r, err := diff3.Merge(strings.NewReader(expected), strings.NewReader(""), strings.NewReader(actual), true, "EXPECTED", "ACTUAL")
+		if err == nil && r.Conflicts {
+			diff, err := ioutil.ReadAll(r.Result)
+			if err == nil {
+				fmt.Printf("Diff:\n%s\n", string(diff))
+			}
+		}
+		tt.Error(fmt.Errorf("Expressions don't match. Check file '%s' in testdata/%s", name, tt.T.Name()))
+	}
+
+	return
+}
+
 // EqualsKey verifies if the passed "actual" value is equal to the value in the
 // given key of the current test's results.json
 func (tt *TestTools) EqualsKey(key string, actual interface{}) {
 	if tt.Results == nil {
 		tt.Fatalf("To use EqualsKey(), call LoadResults() first")
 	}
-	tt.equalsBytes(0, fmt.Sprintf("key:%s", key), actual, func() []byte {
+	tt.equalsJSONBytes(0, fmt.Sprintf("key:%s", key), actual, func() []byte {
 		expectedValueBytes, ok := tt.Results[key]
 		if !ok {
 			tt.Fatalf("Cannot find result key '%s'", key)
@@ -182,21 +206,21 @@ func (tt *TestTools) EqualsKey(key string, actual interface{}) {
 	})
 }
 
-// EqualsFile checks if the passed "actual" value is equivalent
-// to its JSON version contained in the indicated file in the current test's
+// EqualsTextFile checks if the passed "actual" value is equivalent
+// to the text contained in the indicated file in the current test's
 // testadata folder
-func (tt *TestTools) EqualsFile(file string, actual interface{}) {
+func (tt *TestTools) EqualsTextFile(file string, actual string) {
 	path := filepath.Join(tt.TestdataDir, file)
-	tt.equalsBytes(0, file, actual, func() []byte {
+	tt.equalsString(0, file, actual, func() string {
 		expectedValueBytes, err := ioutil.ReadFile(path)
 		if err != nil {
 			tt.Fatalf("Cannot open test result file %s: %s", err)
 		}
-		return expectedValueBytes
+		return string(expectedValueBytes)
 
-	}, func(data []byte) {
+	}, func(data string) {
 		CreateDirectory(tt.TestdataDir)
-		err := ioutil.WriteFile(path, data, 0660)
+		err := ioutil.WriteFile(path, []byte(data), 0660)
 		if err != nil {
 			tt.Fatalf("Cannot write test result file %s : %s", path, err)
 		}

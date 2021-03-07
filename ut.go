@@ -227,6 +227,27 @@ func (tt *TestTools) EqualsTextFile(file string, actual string) {
 	})
 }
 
+// EqualsFile checks if the passed "actual" value is equivalent
+// to its JSON version contained in the indicated file in the current test's
+// testadata folder
+func (tt *TestTools) EqualsFile(file string, actual interface{}) {
+	path := filepath.Join(tt.TestdataDir, file)
+	tt.equalsJSONBytes(0, file, actual, func() []byte {
+		expectedValueBytes, err := ioutil.ReadFile(path)
+		if err != nil {
+			tt.Fatalf("Cannot open test result file %s: %s", err)
+		}
+		return expectedValueBytes
+
+	}, func(data []byte) {
+		CreateDirectory(tt.TestdataDir)
+		err := ioutil.WriteFile(path, data, 0660)
+		if err != nil {
+			tt.Fatalf("Cannot write test result file %s : %s", path, err)
+		}
+	})
+}
+
 //JSONEquals checks if the passed values are JSON-equal, comparing values
 // taking into account keys can be in different order, etc.
 func (tt *TestTools) JSONEquals(expected, actual []byte) {
